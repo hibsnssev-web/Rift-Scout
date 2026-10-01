@@ -1,5 +1,5 @@
 /* Rift Scout: views and routing. Routes are plain hash tokens:
-   #champions, #matchups, #builds, #<championId>, #<championId>.vs.<championId> */
+   #champions, #matchups, #builds, #items, #<championId>, #<championId>.vs.<championId> */
 (function () {
   "use strict";
   const E = window.RiftEngine;
@@ -24,8 +24,74 @@
     return `<span class="pt pt-${size} g-${c.group}" aria-hidden="true">${esc(c.initials)}<img src="assets/img/${c.id}.png" alt="" loading="lazy" decoding="async"></span>`;
   }
   document.addEventListener("error", e => {
-    if (e.target.tagName === "IMG" && e.target.parentElement && e.target.parentElement.classList.contains("pt")) e.target.remove();
+    const box = e.target.tagName === "IMG" && e.target.parentElement;
+    if (box && (box.classList.contains("pt") || box.classList.contains("ic"))) e.target.remove();
   }, true);
+
+  /* ---------- Riot's official data (Data Dragon): lore, abilities, items ----------
+     Loaded live in the visitor's browser, so it always matches the current patch. */
+  const DD = "https://ddragon.leagueoflegends.com";
+  const LANGS = { en_US: "English", hu_HU: "Magyar" };
+  const riot = { version: null, lang: "en_US", champ: {}, items: {} };
+  try { if (localStorage.getItem("rs-lang") === "hu_HU") riot.lang = "hu_HU"; } catch (e) { /* storage unavailable */ }
+  function setLang(lang) {
+    riot.lang = lang;
+    try { localStorage.setItem("rs-lang", lang); } catch (e) { /* storage unavailable */ }
+  }
+  async function getJson(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+  async function ddVersion() {
+    if (!riot.version) riot.version = (await getJson(DD + "/api/versions.json"))[0];
+    return riot.version;
+  }
+  async function ddChampion(c, lang) {
+    const v = await ddVersion(), k = lang + ":" + c.key;
+    if (!riot.champ[k]) riot.champ[k] = Object.values((await getJson(`${DD}/cdn/${v}/data/${lang}/champion/${c.key}.json`)).data)[0];
+    return riot.champ[k];
+  }
+  async function ddItems(lang) {
+    const v = await ddVersion();
+    if (!riot.items[lang]) riot.items[lang] = shopItems((await getJson(`${DD}/cdn/${v}/data/${lang}/item.json`)).data);
+    return riot.items[lang];
+  }
+  // Riot's descriptions carry their own markup; keep the line breaks and drop the tags.
+  function riotText(html) {
+    const doc = new DOMParser().parseFromString(String(html || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/?li>/gi, "\n"), "text/html");
+    return doc.body.textContent.replace(/[ \t]+\n/g, "\n").replace(/\n{2,}/g, "\n").trim();
+  }
+  const multiline = s => esc(s).replace(/\n/g, "<br>");
+  // The normal Summoner's Rift shop: ids of 100000 and up are copies for other game modes.
+  function shopItems(data) {
+    const seen = new Set(), out = [];
+    const real = id => +id < 100000 && data[id];
+    Object.keys(data).forEach(id => {
+      const it = data[id];
+      if (+id >= 100000 || !it.maps || !it.maps["11"] || !it.gold || !it.gold.purchasable || it.inStore === false || it.requiredChampion || it.requiredAlly) return;
+      if (seen.has(it.name)) return;
+      seen.add(it.name);
+      const tags = it.tags || [];
+      const upgrades = (it.into || []).some(t => real(t) && data[t].gold.purchasable);
+      const fromBoots = (it.from || []).some(f => real(f) && (data[f].tags || []).includes("Boots"));
+      let cat = "starter";
+      if (tags.includes("Boots") || fromBoots) cat = "boots";
+      else if (!upgrades && it.gold.total >= 1400) cat = "completed";
+      else if (upgrades && !["Consumable", "Trinket", "Jungle", "GoldPer"].some(t => tags.includes(t))) cat = "component";
+      out.push({
+        id, name: it.name, key: norm(it.name), gold: it.gold.total, plain: it.plaintext || "", text: riotText(it.description), cat, icon: it.image.full,
+        from: [...new Set((it.from || []).filter(real).map(x => data[x].name))],
+        into: [...new Set((it.into || []).filter(real).map(x => data[x].name))]
+      });
+    });
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  const langToggle = () => `<span class="lang" role="group" aria-label="Language of Riot's text">${Object.keys(LANGS).map(l => `<button type="button" class="chip-btn" data-lang="${l}" aria-pressed="${riot.lang === l}">${LANGS[l]}</button>`).join("")}</span>`;
+  // Item names in builds link to the item page. Entries that aren't a single shop item stay plain.
+  const itemChip = (name, core) => /[(+]/.test(name)
+    ? `<span class="item${core ? " core" : ""}">${esc(name)}</span>`
+    : `<a class="item${core ? " core" : ""}" href="#items" data-item="${esc(name)}">${esc(name)}</a>`;
   const pill = v => `<span class="pill v-${v.key}">${esc(v.short)}</span>`;
   function edgeBar(total) {
     const w = Math.min(50, Math.abs(total) / 1.6 * 50);
@@ -54,6 +120,7 @@
           <a href="#champions" data-nav="champions">Champions</a>
           <a href="#matchups" data-nav="matchups">Matchups</a>
           <a href="#builds" data-nav="builds">Builds</a>
+          <a href="#items" data-nav="items">Items</a>
         </nav>
         <form class="search" id="gsearch" role="search">
           <input type="search" id="gq" list="champ-names" placeholder="Find a champion" aria-label="Find a champion" autocomplete="off">
@@ -66,7 +133,7 @@
     dl.innerHTML = champs.map(c => `<option value="${esc(c.name)}"></option>`).join("");
     document.body.appendChild(dl);
     const footer = document.createElement("footer");
-    footer.innerHTML = `<p>Matchup ratings come from the champion profiles on this site and a rules-based model. They are not win-rate statistics. Builds use the Season 2026 item pool as of patch 26.19. Rift Scout isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends.</p>`;
+    footer.innerHTML = `<p>Matchup ratings come from the champion profiles on this site and a rules-based model. They are not win-rate statistics. Builds use the Season 2026 item pool as of patch 26.19. Lore, ability and item text and their icons are loaded from Riot Games' Data Dragon. Rift Scout isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends.</p>`;
     document.body.appendChild(footer);
     const form = header.querySelector("#gsearch");
     const input = header.querySelector("#gq");
@@ -91,7 +158,7 @@
         <div>
           <p class="eyebrow">Patch 26.19 · Season 2026</p>
           <h1>Every champion. Every matchup.</h1>
-          <p class="lede">Strengths, weaknesses, risk limits and builds for all ${champs.length} champions, plus a breakdown of each of the ${fmt(TOTAL)} ranked matchups. Mirror matchups are left out because Ranked doesn't allow them.</p>
+          <p class="lede">Lore, abilities, strengths, weaknesses, risk limits and builds for all ${champs.length} champions, every shop item, and a breakdown of each of the ${fmt(TOTAL)} ranked matchups. Mirror matchups are left out because Ranked doesn't allow them.</p>
           <div class="counts">
             <div><b>${champs.length}</b><span>Champions</span></div>
             <div><b>${fmt(TOTAL)}</b><span>Matchups</span></div>
@@ -182,14 +249,14 @@
           <div class="kv"><span>Start</span><b>${esc(b.st)}</b></div>
           <div class="kv"><span>Boots</span><b>${esc(b.bo)}</b></div>
         </div>
-        <div class="kv"><span>Core, in order</span><div class="items">${b.core.map((i, n) => `${n ? '<span class="arrow" aria-hidden="true">→</span>' : ""}<span class="item core">${esc(i)}</span>`).join("")}</div></div>
-        <div class="kv"><span>Situational</span><div class="items">${b.sit.map(i => `<span class="item">${esc(i)}</span>`).join("")}</div></div>
+        <div class="kv"><span>Core, in order</span><div class="items">${b.core.map((i, n) => `${n ? '<span class="arrow" aria-hidden="true">→</span>' : ""}${itemChip(i, true)}`).join("")}</div></div>
+        <div class="kv"><span>Situational</span><div class="items">${b.sit.map(i => itemChip(i)).join("")}</div></div>
       </div>`;
   }
   const offCard = o => `
       <div class="panel build offmeta">
         <div class="build-label"><h3>${esc(o.n)}</h3><span class="tag">Off-meta</span></div>
-        <div class="items">${o.i.map((i, n) => `${n ? '<span class="arrow" aria-hidden="true">→</span>' : ""}<span class="item">${esc(i)}</span>`).join("")}</div>
+        <div class="items">${o.i.map((i, n) => `${n ? '<span class="arrow" aria-hidden="true">→</span>' : ""}${itemChip(i)}`).join("")}</div>
         <p class="muted">${esc(o.w)}</p>
       </div>`;
 
@@ -209,6 +276,7 @@
         <div>
           <p class="eyebrow">${esc(c.cls)}</p>
           <h1>${esc(c.name)}</h1>
+          <p class="title-line" id="riot-title"></p>
           <div class="tags">
             ${c.roles.map(r => `<span class="tag">${ROLES[r]}</span>`).join("")}
             <span class="tag">${esc(c.dmg)} damage</span>
@@ -220,6 +288,11 @@
 
       <section class="section">
         <div class="stats">${STATS.slice(3).map(([k, label]) => `<div class="stat"><span>${label}</span>${pips(c.S[k])}</div>`).join("")}</div>
+      </section>
+
+      <section class="section" id="riot">
+        <div class="section-head"><h2>Lore and abilities</h2>${langToggle()}</div>
+        <div id="riot-body" class="section"><p class="muted">Loading Riot's champion data…</p></div>
       </section>
 
       <section class="section">
@@ -305,6 +378,53 @@
     laneBtn.addEventListener("click", () => { laneOnly = !laneOnly; laneBtn.setAttribute("aria-pressed", String(laneOnly)); draw(); });
     q.addEventListener("input", draw);
     draw();
+
+    app.querySelectorAll("#riot [data-lang]").forEach(btn => btn.addEventListener("click", () => {
+      setLang(btn.dataset.lang);
+      app.querySelectorAll("#riot [data-lang]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.lang === riot.lang)));
+      loadRiotChampion(c);
+    }));
+    loadRiotChampion(c);
+  }
+
+  // Fills the champion page's title, lore and abilities from Riot's data once it arrives.
+  let riotToken = 0;
+  async function loadRiotChampion(c) {
+    const token = ++riotToken;
+    const body = app.querySelector("#riot-body");
+    if (!body) return;
+    const stale = () => token !== riotToken || !app.contains(body);
+    try {
+      const d = await ddChampion(c, riot.lang), v = riot.version;
+      if (stale()) return;
+      const title = app.querySelector("#riot-title");
+      if (title) title.textContent = d.title;
+      const ability = (key, name, text, icon, meta) => `
+        <div class="ability">
+          <span class="ic"><img src="${icon}" alt="" loading="lazy"></span>
+          <div>
+            <h3><span class="key">${key}</span>${esc(name)}</h3>
+            <p>${multiline(riotText(text))}</p>
+            ${meta.length ? `<p class="meta num">${meta.map(esc).join(" · ")}</p>` : ""}
+          </div>
+        </div>`;
+      const spellMeta = s => {
+        const m = [];
+        if (s.cooldownBurn && s.cooldownBurn !== "0") m.push(`Cooldown ${s.cooldownBurn} s`);
+        if (s.costBurn && s.costBurn !== "0") m.push(`Cost ${s.costBurn}`);
+        if (/^[\d/]+$/.test(s.rangeBurn || "") && Math.max(...s.rangeBurn.split("/").map(Number)) < 5000 && s.rangeBurn !== "0") m.push(`Range ${s.rangeBurn}`);
+        return m;
+      };
+      body.innerHTML = `
+        <div class="panel lore"><p>${esc(d.lore)}</p></div>
+        <div class="panel abilities">
+          ${ability("P", d.passive.name, d.passive.description, `${DD}/cdn/${v}/img/passive/${d.passive.image.full}`, [])}
+          ${d.spells.map((s, i) => ability("QWER"[i] || "", s.name, s.description, `${DD}/cdn/${v}/img/spell/${s.image.full}`, spellMeta(s))).join("")}
+        </div>`;
+    } catch (e) {
+      if (stale()) return;
+      body.innerHTML = `<p class="muted">Riot's champion data couldn't be loaded right now. The rest of this page doesn't depend on it.</p>`;
+    }
   }
 
   /* ---------- Matchup ---------- */
@@ -386,8 +506,8 @@
           <div class="panel build">
             <div class="build-label"><h3>Changes against ${esc(b.name)}</h3></div>
             <div class="adj">
-              ${bv.items.map(i => `<div class="adj-row"><span class="item ${i.vision ? "" : "core"}">${esc(i.item)}</span><span>${esc(i.why)}</span></div>`).join("")}
-              ${bv.boots ? `<div class="adj-row"><span class="item">${esc(bv.boots.item)}</span><span>${esc(bv.boots.why)}</span></div>` : ""}
+              ${bv.items.map(i => `<div class="adj-row"><span>${itemChip(i.item, !i.vision)}</span><span>${esc(i.why)}</span></div>`).join("")}
+              ${bv.boots ? `<div class="adj-row"><span>${itemChip(bv.boots.item)}</span><span>${esc(bv.boots.why)}</span></div>` : ""}
               ${bv.runes.map(x => `<div class="adj-row"><span class="item">${esc(x.rune)}</span><span>${esc(x.why)}</span></div>`).join("")}
               ${bv.spells.map(x => `<div class="adj-row"><span class="item">${esc(x.spell)}</span><span>${esc(x.why)}</span></div>`).join("")}
               ${!bv.items.length && !bv.boots && !bv.runes.length && !bv.spells.length ? `<p class="muted">No changes needed. Your standard build already handles ${esc(b.name)}.</p>` : ""}
@@ -443,8 +563,8 @@
         <tr>
           <td><a class="who" href="#${c.id}">${portrait(c, "s")}${esc(c.name)}</a></td>
           <td>${esc(c.b.ru)}<br><span class="muted">${esc(c.b.ss)}</span></td>
-          <td><div class="items">${c.b.core.map(i => `<span class="item core">${esc(i)}</span>`).join("")}<span class="item">${esc(c.b.bo)}</span></div></td>
-          <td>${(c.ob || []).map(o => `<div><b>${esc(o.n)}</b><div class="items">${o.i.map(i => `<span class="item">${esc(i)}</span>`).join("")}</div></div>`).join("")}</td>
+          <td><div class="items">${c.b.core.map(i => itemChip(i, true)).join("")}${itemChip(c.b.bo)}</div></td>
+          <td>${(c.ob || []).map(o => `<div><b>${esc(o.n)}</b><div class="items">${o.i.map(i => itemChip(i)).join("")}</div></div>`).join("")}</td>
         </tr>`).join("") || `<tr><td colspan="4" class="muted">Nothing matches that filter.</td></tr>`;
     };
     app.querySelectorAll("[data-brole]").forEach(btn => btn.addEventListener("click", () => {
@@ -456,6 +576,90 @@
     draw();
   }
 
+  /* ---------- Items ---------- */
+  const ICATS = { all: "All items", completed: "Completed items", boots: "Boots", component: "Components", starter: "Starter and consumables" };
+  const ICAT_TAG = { completed: "Completed", boots: "Boots", component: "Component", starter: "Starter" };
+  const ifilt = { cat: "all", q: "", focus: null };
+  // Clicking an item name in a build opens the item page filtered to that item.
+  document.addEventListener("click", e => {
+    const a = e.target.closest ? e.target.closest("a.item[data-item]") : null;
+    if (a) { ifilt.focus = a.dataset.item; ifilt.cat = "all"; ifilt.q = ""; }
+  });
+  let itemsToken = 0;
+  function viewItems() {
+    setNav("items", "Items");
+    app.innerHTML = `
+      <section class="section">
+        <p class="eyebrow">From Riot's official data · current patch</p>
+        <h1>Items</h1>
+        <p class="muted" style="max-width:65ch">Every item in the Summoner's Rift shop with its cost, stats and effects. Item names in any build on this site link here.</p>
+      </section>
+      <section class="section">
+        <div class="filters" id="icats">
+          ${Object.keys(ICATS).map(k => `<button type="button" class="chip-btn" data-icat="${k}" aria-pressed="${ifilt.cat === k}">${ICATS[k]}</button>`).join("")}
+          <span class="spacer"></span>
+          ${langToggle()}
+        </div>
+        <div class="filters">
+          <input type="search" id="iq" placeholder="Search items" aria-label="Search items" value="${esc(ifilt.q)}">
+          <span class="muted num" id="icount"></span>
+        </div>
+        <div class="item-grid" id="igrid"><p class="muted">Loading Riot's item data…</p></div>
+      </section>`;
+    const grid = app.querySelector("#igrid"), input = app.querySelector("#iq");
+    const token = ++itemsToken;
+    const stale = () => token !== itemsToken || !app.contains(grid);
+    const draw = items => {
+      const q = ifilt.q.trim().toLowerCase();
+      const shown = items.filter(i => (ifilt.cat === "all" || i.cat === ifilt.cat) && (!q || i.name.toLowerCase().includes(q)));
+      app.querySelector("#icount").textContent = `${shown.length} of ${items.length}`;
+      grid.innerHTML = shown.map(i => `
+        <article class="panel item-card">
+          <div class="item-head">
+            <span class="ic"><img src="${DD}/cdn/${riot.version}/img/item/${i.icon}" alt="" loading="lazy"></span>
+            <div><h3>${esc(i.name)}</h3><span class="num gold">${fmt(i.gold)} gold</span> <span class="tag">${ICAT_TAG[i.cat]}</span></div>
+          </div>
+          ${i.plain ? `<p class="muted">${esc(i.plain)}</p>` : ""}
+          ${i.text ? `<p class="item-text">${multiline(i.text)}</p>` : ""}
+          ${i.from.length ? `<p class="note">Builds from: ${i.from.map(esc).join(", ")}</p>` : ""}
+          ${i.into.length ? `<p class="note">Builds into: ${i.into.map(esc).join(", ")}</p>` : ""}
+        </article>`).join("") || `<p class="muted">No item matches that search.</p>`;
+    };
+    const load = async () => {
+      try {
+        const items = await ddItems(riot.lang);
+        if (ifilt.focus) {
+          // Build names are English; find the same item in the chosen language by its id.
+          const wanted = norm(ifilt.focus), en = await ddItems("en_US");
+          const hit = en.find(i => i.key === wanted) || en.find(i => i.key.includes(wanted));
+          const local = hit && items.find(i => i.id === hit.id);
+          ifilt.q = local ? local.name : ifilt.focus;
+          ifilt.focus = null;
+          input.value = ifilt.q;
+        }
+        if (stale()) return;
+        draw(items);
+        input.oninput = () => { ifilt.q = input.value; draw(items); };
+        app.querySelectorAll("[data-icat]").forEach(b => { b.onclick = () => {
+          ifilt.cat = b.dataset.icat;
+          app.querySelectorAll("[data-icat]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.icat === ifilt.cat)));
+          draw(items);
+        }; });
+      } catch (e) {
+        if (stale()) return;
+        grid.innerHTML = `<p class="muted">Riot's item data couldn't be loaded right now. Try again in a moment.</p>`;
+      }
+    };
+    app.querySelectorAll("#icats [data-lang]").forEach(btn => btn.addEventListener("click", () => {
+      setLang(btn.dataset.lang);
+      app.querySelectorAll("#icats [data-lang]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.lang === riot.lang)));
+      ifilt.q = ""; input.value = "";
+      grid.innerHTML = `<p class="muted">Loading Riot's item data…</p>`;
+      load();
+    }));
+    load();
+  }
+
   /* ---------- Router ---------- */
   let lastView = "";
   function route() {
@@ -465,6 +669,7 @@
     if (m && byId[m[1]] && byId[m[2]] && m[1] !== m[2]) { view = h; viewMatchup(m[1], m[2]); }
     else if (h === "matchups") { view = h; viewMatchup(DEFAULT_PAIR[0], DEFAULT_PAIR[1]); }
     else if (h === "builds") { view = h; viewBuilds(); }
+    else if (h === "items") { view = h; viewItems(); }
     else if (byId[h]) { view = h; viewChampion(h); }
     else { view = "champions"; viewChampions(); }
     if (view !== lastView) window.scrollTo(0, 0);
