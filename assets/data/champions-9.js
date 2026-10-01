@@ -30,7 +30,7 @@ window.RS_DATA.push(
   sit: [["Ahead", "Roam with your jungler and dive."], ["Behind", "Peel with CC instead of engaging."], ["Into poke", "Engage early before the poke adds up."]],
   b: { ru: "Aftershock · Inspiration", ss: "Flash · Ignite", st: "World Atlas", core: ["Celestial Opposition", "Locket of the Iron Solari", "Knight's Vow"], bo: "Plated Steelcaps", sit: ["Zeke's Convergence", "Bandlepipes", "Thornmail", "Redemption"] },
   ob: [
-    { n: "Jungle Leona", i: ["Trailblazer", "Jak'Sho the Protean", "Unending Despair"], w: "Gank-heavy engage jungler." },
+    { n: "Jungle Leona", i: ["Dead Man's Plate", "Jak'Sho the Protean", "Unending Despair"], w: "Gank-heavy engage jungler." },
     { n: "AP Leona", i: ["Zaz'Zak's Realmspike", "Luden's Echo", "Shadowflame"], w: "Burst-kill lane with a hyper-aggressive ADC." }
   ],
   cb: { morgana: "Black Shield makes her ally immune to Leona's CC.", janna: "Howling Gale knocks her out of Zenith Blade and Monsoon undoes her engage.", braum: "Unbreakable blocks Zenith Blade.", taric: "Cosmic Radiance makes her engage useless." }

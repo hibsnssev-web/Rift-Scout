@@ -28,7 +28,7 @@ window.RS_DATA.push(
   go: ["Gank from stealth when the enemy laner is pushed up", "Box your jungle entrances before invaders arrive"],
   no: ["Don't fight tanks head-on", "Don't Deceive into Oracle Lens sweeps"],
   sit: [["Ahead", "Invade and pick off isolated targets."], ["Behind", "Box objectives and play for picks."], ["Into tanks", "Target squishies and ignore the front line."]],
-  b: { ru: "Electrocute · Domination", ss: "Smite · Ignite", st: "Scorchclaw Pup", core: ["Youmuu's Ghostblade", "Voltaic Cyclosword", "Edge of Night"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Guardian Angel", "Opportunity", "Bastionbreaker"] },
+  b: { ru: "Electrocute · Domination", ss: "Smite · Ignite", st: "Scorchclaw Pup", core: ["Youmuu's Ghostblade", "Voltaic Cyclosword", "Edge of Night"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Guardian Angel", "Hubris", "Bastionbreaker"] },
   ob: [
     { n: "AP Shaco", i: ["Liandry's Torment", "Rylai's Crystal Scepter", "Zhonya's Hourglass"], w: "Box-focused build for support or jungle." },
     { n: "Crit Shaco", i: ["Infinity Edge", "The Collector", "Lord Dominik's Regards"], w: "Crit backstab build for late games." }

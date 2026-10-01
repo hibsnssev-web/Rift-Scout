@@ -28,9 +28,9 @@ window.RS_DATA.push(
   go: ["R to finish a low team", "Hook the ADC when they step out"],
   no: ["Don't hook with no follow-up", "Don't fight tanky teams"],
   sit: [["Ahead", "Roam and execute."], ["Behind", "Look for picks."], ["Into tanks", "Stay back and wait for executes."]],
-  b: { ru: "Hail of Blades · Resolve", ss: "Flash · Ignite", st: "World Atlas", core: ["Solstice Sleigh", "Youmuu's Ghostblade", "Opportunity"], bo: "Ionian Boots of Lucidity", sit: ["Edge of Night", "Serylda's Grudge", "Umbral Glaive", "Axiom Arc"] },
+  b: { ru: "Hail of Blades · Resolve", ss: "Flash · Ignite", st: "World Atlas", core: ["Solstice Sleigh", "Youmuu's Ghostblade", "Umbral Glaive"], bo: "Ionian Boots of Lucidity", sit: ["Edge of Night", "Serylda's Grudge", "Voltaic Cyclosword", "Axiom Arc"] },
   ob: [
-    { n: "Mid Pyke", i: ["Youmuu's Ghostblade", "Opportunity", "Axiom Arc"], w: "Execute roamer from mid lane." },
+    { n: "Mid Pyke", i: ["Youmuu's Ghostblade", "Voltaic Cyclosword", "Axiom Arc"], w: "Execute roamer from mid lane." },
     { n: "Bastionbreaker Pyke", i: ["Bastionbreaker", "Youmuu's Ghostblade", "Axiom Arc"], w: "True-damage burst that executes through tanky supports." }
   ],
   cb: { braum: "Unbreakable blocks his hook.", morgana: "Black Shield blocks his combo.", janna: "Disengage cancels his dive.", renata: "Bailout punishes his dive." }
@@ -45,7 +45,7 @@ window.RS_DATA.push(
   go: ["R a team against walls", "Dive with E and Q"],
   no: ["Don't fight in open ground", "Don't dive without R"],
   sit: [["Ahead", "Roam and assassinate."], ["Behind", "Look for flank R stuns."], ["Into tanks", "Target squishies."]],
-  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Opportunity"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Maw of Malmortius"] },
+  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Voltaic Cyclosword"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Maw of Malmortius"] },
   ob: [
     { n: "Bruiser Qiyana", i: ["Eclipse", "Black Cleaver", "Death's Dance"], w: "Bruiser Qiyana for long skirmishes in the jungle." },
     { n: "Bastionbreaker Qiyana", i: ["Bastionbreaker", "Youmuu's Ghostblade", "Serylda's Grudge"], w: "True-damage burst on her R stuns." }

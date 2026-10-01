@@ -45,7 +45,7 @@ window.RS_DATA.push(
   go: ["Dash onto a squishy carry", "Roam with R speed"],
   no: ["Don't W into five enemies", "Don't fight tanks"],
   sit: [["Ahead", "Roam and snowball."], ["Behind", "Farm and look for picks."], ["Into tanks", "Target squishies only."]],
-  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Opportunity"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Maw of Malmortius"] },
+  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Voltaic Cyclosword"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Maw of Malmortius"] },
   ob: [
     { n: "Bruiser Naafiri", i: ["Eclipse", "Black Cleaver", "Death's Dance"], w: "Durable build." },
     { n: "Bastionbreaker Naafiri", i: ["Bastionbreaker", "Youmuu's Ghostblade", "Serylda's Grudge"], w: "True damage burst." }

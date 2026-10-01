@@ -28,7 +28,7 @@ window.RS_DATA.push(
   go: ["Roam over walls every time the wave is pushed", "R a squishy carry who walks alone"],
   no: ["Don't fight tanks", "Don't dive into point-and-click CC"],
   sit: [["Ahead", "Roam and snowball side lanes."], ["Behind", "Look for picks on squishies from fog."], ["Into tanks", "Ignore the front line and wait for the carry."]],
-  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Opportunity"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Maw of Malmortius"] },
+  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Voltaic Cyclosword"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Maw of Malmortius"] },
   ob: [
     { n: "Jungle Talon", i: ["Youmuu's Ghostblade", "Voltaic Cyclosword", "Edge of Night"], w: "Wall-hopping ganks from unwarded angles." },
     { n: "Bastionbreaker Talon", i: ["Bastionbreaker", "Youmuu's Ghostblade", "Serylda's Grudge"], w: "True-damage burst on champions and towers." }

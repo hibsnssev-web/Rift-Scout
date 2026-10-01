@@ -64,7 +64,7 @@ window.RS_DATA.push(
   sit: [["Ahead", "Roam and look for scoundrel kills to revive allies in skirmishes."], ["Behind", "Farm side lanes and buy Guardian Angel; wait for teamfights to clean up."], ["Into melee", "Short trades with passive double shot, then walk out of range."]],
   b: { ru: "Press the Attack · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Kraken Slayer", "Navori Flickerblade", "Infinity Edge"], bo: "Berserker's Greaves", sit: ["Guardian Angel", "Lord Dominik's Regards", "Bloodthirster", "Mercurial Scimitar"] },
   ob: [
-    { n: "Lethality Akshan", i: ["Profane Hydra", "Youmuu's Ghostblade", "Opportunity"], w: "Roam-heavy pick build for a fast snowball." },
+    { n: "Lethality Akshan", i: ["Profane Hydra", "Youmuu's Ghostblade", "The Collector"], w: "Roam-heavy pick build for a fast snowball." },
     { n: "Stormrazor Akshan", i: ["Stormrazor", "Navori Flickerblade", "Infinity Edge"], w: "Movement-based burst for chasing down squishies." }
   ],
   cb: { galio: "He tanks the damage and taunts Akshan out of his swing.", malzahar: "Suppression and his minions shut down short trades.", fizz: "He jumps on Akshan and dodges the double shot with E.", pantheon: "Point-and-click stun and a spear shield beat Akshan's short trades." }
@@ -82,7 +82,7 @@ window.RS_DATA.push(
   b: { ru: "Aftershock · Inspiration", ss: "Flash · Ignite", st: "World Atlas", core: ["Celestial Opposition", "Locket of the Iron Solari", "Knight's Vow"], bo: "Plated Steelcaps", sit: ["Zeke's Convergence", "Bandlepipes", "Thornmail", "Redemption"] },
   ob: [
     { n: "Top-lane Alistar", i: ["Sunfire Aegis", "Unending Despair", "Thornmail"], w: "Counter-pick into melee champions who can't escape his combo." },
-    { n: "Jungle Alistar", i: ["Trailblazer", "Jak'Sho the Protean", "Unending Despair"], w: "Gank-heavy jungle for a lane-strong team." }
+    { n: "Jungle Alistar", i: ["Dead Man's Plate", "Jak'Sho the Protean", "Unending Despair"], w: "Gank-heavy jungle for a lane-strong team." }
   ],
   cb: { janna: "Her tornado and Monsoon cancel his engage.", renata: "Bailout and Hostile Takeover punish his dive.", morgana: "Black Shield blocks his combo and Dark Binding catches him first.", zyra: "Plants and poke burn him down before he gets in." }
 },

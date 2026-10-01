@@ -28,7 +28,7 @@ window.RS_DATA.push(
   go: ["R a squishy carry who walked away from their team", "Shadow poke with W-Q when the enemy is out of minion cover"],
   no: ["Don't W in when you need the shadow to get out", "Don't R a tank or a champion holding Zhonya's"],
   sit: [["Ahead", "Roam to side lanes after pushing and kill carries before fights start."], ["Behind", "Farm with shadow Qs and look for picks on isolated squishies."], ["Into tanks", "Skip the front line and wait for the carry to step forward."]],
-  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Opportunity"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Bastionbreaker"] },
+  b: { ru: "Electrocute · Domination", ss: "Flash · Ignite", st: "Doran's Blade", core: ["Profane Hydra", "Youmuu's Ghostblade", "Voltaic Cyclosword"], bo: "Ionian Boots of Lucidity", sit: ["Serylda's Grudge", "Edge of Night", "Guardian Angel", "Bastionbreaker"] },
   ob: [
     { n: "Bruiser Zed", i: ["Eclipse", "Black Cleaver", "Death's Dance"], w: "Durable build for long skirmishes into bruisers." },
     { n: "Crit Zed", i: ["Infinity Edge", "The Collector", "Lord Dominik's Regards"], w: "Crit shuriken for late games against front lines." }
