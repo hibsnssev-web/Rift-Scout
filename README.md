@@ -3,7 +3,6 @@
 League of Legends champion profiles, 29,756 matchup breakdowns and builds, as a static website (no server or database needed).
 
 - Open `index.html` to use it locally.
-- Private online copy: https://claude.ai/artifact/LPT9PdNuo7uuGA1Mo1U5PG
 
 ## Publishing it as a public website
 
