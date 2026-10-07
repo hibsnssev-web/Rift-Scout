@@ -10,7 +10,7 @@
   const BUILDS = champs.reduce((n, c) => n + 1 + (c.ob || []).length, 0);
   const GROUPS = { controller: "Controller", fighter: "Fighter", mage: "Mage", marksman: "Marksman", slayer: "Slayer", tank: "Tank", specialist: "Specialist" };
   const DEFAULT_PAIR = ["ahri", "zed"];
-  const PATCH = "26.19";   // the patch the profiles and builds were written for
+  const PATCH = "26.20";   // the patch the profiles and builds were written for
 
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const fmt = n => n.toLocaleString("en-US");
