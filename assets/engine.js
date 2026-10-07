@@ -402,5 +402,40 @@
     return champs.filter(b => b.cb[a.id]).map(b => ({ c: b, why: b.cb[a.id] }));
   }
 
-  window.RiftEngine = { champs, byId, ROLES, CLASSES, STATS, score, plan, risks, buildVs, rankFor, countersOf, T_EVEN, T_HARD };
+  /* Lane meta: everyone who plays a role, ranked by average edge and cut into tiers.
+     Half of the rating is the edge over the other picks of that role, half is the edge over the
+     rest of the roster in fights. The three game phases count the same here, so a late-game
+     champion isn't marked down for a slow start. Opponents who play the role as their main
+     one are met more often and count double.
+     Only champions whose main role it is get a rank and a tier (S is the top tenth of them).
+     The model compares kits and can't tell how well a kit carries over to a second role, so
+     the others are returned as flex picks: main false, no tier. */
+  const TIER_CUTS = [["S", 0.1], ["A", 0.3], ["B", 0.7], ["C", 0.9], ["D", 1]];
+  const flat = res => (res.phases.e + res.phases.m + res.phases.l) / 3;
+  const metaCache = {};
+  function meta(role) {
+    if (metaCache[role]) return metaCache[role];
+    const field = champs.filter(c => c.roles.includes(role));
+    const others = champs.filter(c => !c.roles.includes(role));
+    const rows = field.map(c => {
+      const lane = field.filter(o => o.id !== c.id).map(o => score(c, o)).sort((p, q) => q.total - p.total);
+      let sum = 0, weight = 0;
+      lane.forEach(res => { const w = res.b.roles[0] === role ? 1 : 0.5; sum += w * flat(res); weight += w; });
+      const fights = others.reduce((n, o) => n + flat(score(c, o)), 0) / others.length;
+      return {
+        c, main: c.roles[0] === role, tier: "", rating: 0.5 * sum / weight + 0.5 * fights,
+        // Up to three lane matchups it is favored in, and up to three it is not.
+        best: lane.filter(res => res.total >= T_EVEN).slice(0, 3),
+        worst: lane.filter(res => res.total <= -T_EVEN).slice(-3).reverse()
+      };
+    }).sort((p, q) => q.rating - p.rating);
+    const mains = rows.filter(r => r.main);
+    mains.forEach((r, i) => {
+      r.rank = i + 1;
+      r.tier = TIER_CUTS.find(t => (i + 0.5) / mains.length <= t[1])[0];
+    });
+    return (metaCache[role] = rows);
+  }
+
+  window.RiftEngine = { champs, byId, ROLES, CLASSES, STATS, score, plan, risks, buildVs, rankFor, countersOf, meta, T_EVEN, T_HARD };
 })();

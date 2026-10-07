@@ -1,5 +1,6 @@
 /* Rift Scout: views and routing. Routes are plain hash tokens:
-   #champions, #matchups, #builds, #items, #<championId>, #<championId>.vs.<championId> */
+   #champions, #matchups, #builds, #items, #meta, #meta.<role>, #<championId>,
+   #<championId>.vs.<championId> */
 (function () {
   "use strict";
   const E = window.RiftEngine;
@@ -9,6 +10,7 @@
   const BUILDS = champs.reduce((n, c) => n + 1 + (c.ob || []).length, 0);
   const GROUPS = { controller: "Controller", fighter: "Fighter", mage: "Mage", marksman: "Marksman", slayer: "Slayer", tank: "Tank", specialist: "Specialist" };
   const DEFAULT_PAIR = ["ahri", "zed"];
+  const PATCH = "26.19";   // the patch the profiles and builds were written for
 
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const fmt = n => n.toLocaleString("en-US");
@@ -31,13 +33,26 @@
   /* ---------- Riot's official data (Data Dragon): lore, abilities, items ----------
      Loaded live in the visitor's browser, so it always matches the current patch. */
   const DD = "https://ddragon.leagueoflegends.com";
-  const LANGS = { en_US: "English", hu_HU: "Magyar" };
+  // Every language Riot publishes its texts in, one entry per language.
+  const LANGS = {
+    en_US: "English", cs_CZ: "Čeština", de_DE: "Deutsch", el_GR: "Ελληνικά", es_ES: "Español", fr_FR: "Français", hu_HU: "Magyar",
+    it_IT: "Italiano", pl_PL: "Polski", pt_BR: "Português", ro_RO: "Română", ru_RU: "Русский", tr_TR: "Türkçe", ar_AE: "العربية",
+    id_ID: "Bahasa Indonesia", vi_VN: "Tiếng Việt", th_TH: "ไทย", ja_JP: "日本語", ko_KR: "한국어", zh_CN: "简体中文", zh_TW: "繁體中文"
+  };
+  const RTL = ["ar_AE"];   // written right to left
   const riot = { version: null, lang: "en_US", champ: {}, items: {} };
-  try { if (localStorage.getItem("rs-lang") === "hu_HU") riot.lang = "hu_HU"; } catch (e) { /* storage unavailable */ }
+  try { const saved = localStorage.getItem("rs-lang"); if (LANGS[saved]) riot.lang = saved; } catch (e) { /* storage unavailable */ }
   function setLang(lang) {
+    if (!LANGS[lang]) return;
     riot.lang = lang;
     try { localStorage.setItem("rs-lang", lang); } catch (e) { /* storage unavailable */ }
   }
+  const riotDir = () => (RTL.includes(riot.lang) ? "rtl" : "ltr");
+  // A champion's splash picture, used as the backdrop of page headers (styles.css: .art, .duel).
+  const splash = c => `${DD}/cdn/img/champion/splash/${c.key}_0.jpg`;
+  const artStyle = c => `style="--art:url('${splash(c)}')"`;
+  // The start page shows a different champion on every visit.
+  const FEATURED = champs[Math.floor(Math.random() * champs.length)];
   async function getJson(url) {
     const r = await fetch(url);
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -87,14 +102,14 @@
     });
     return out.sort((a, b) => a.name.localeCompare(b.name));
   }
-  const langToggle = () => `<span class="lang" role="group" aria-label="Language of Riot's text">${Object.keys(LANGS).map(l => `<button type="button" class="chip-btn" data-lang="${l}" aria-pressed="${riot.lang === l}">${LANGS[l]}</button>`).join("")}</span>`;
+  const langToggle = () => `<select class="lang" data-lang aria-label="Language of Riot's text">${Object.keys(LANGS).map(l => `<option value="${l}"${riot.lang === l ? " selected" : ""}>${LANGS[l]}</option>`).join("")}</select>`;
   // Item names in builds link to the item page. Entries that aren't a single shop item stay plain.
   const itemChip = (name, core) => /[(+]/.test(name)
     ? `<span class="item${core ? " core" : ""}">${esc(name)}</span>`
     : `<a class="item${core ? " core" : ""}" href="#items" data-item="${esc(name)}">${esc(name)}</a>`;
   const pill = v => `<span class="pill v-${v.key}">${esc(v.short)}</span>`;
-  function edgeBar(total) {
-    const w = Math.min(50, Math.abs(total) / 1.6 * 50);
+  function edgeBar(total, scale) {
+    const w = Math.min(50, Math.abs(total) / (scale || 1.6) * 50);
     return `<div class="edge" role="img" aria-label="Edge ${signed(total)}"><i class="${total >= 0 ? "pos" : "neg"}" style="width:${w.toFixed(1)}%"></i></div>`;
   }
   function tug(total, scale) {
@@ -121,6 +136,7 @@
           <a href="#matchups" data-nav="matchups">Matchups</a>
           <a href="#builds" data-nav="builds">Builds</a>
           <a href="#items" data-nav="items">Items</a>
+          <a href="#meta" data-nav="meta">Meta</a>
         </nav>
         <form class="search" id="gsearch" role="search">
           <input type="search" id="gq" list="champ-names" placeholder="Find a champion" aria-label="Find a champion" autocomplete="off">
@@ -133,7 +149,7 @@
     dl.innerHTML = champs.map(c => `<option value="${esc(c.name)}"></option>`).join("");
     document.body.appendChild(dl);
     const footer = document.createElement("footer");
-    footer.innerHTML = `<p>Matchup ratings come from the champion profiles on this site and a rules-based model. They are not win-rate statistics. Builds use the Season 2026 item pool as of patch 26.19. Lore, ability and item text and their icons are loaded from Riot Games' Data Dragon. Rift Scout isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends.</p>`;
+    footer.innerHTML = `<p>Matchup ratings and meta tiers come from the champion profiles on this site and a rules-based model. They are not win-rate statistics. Builds use the Season 2026 item pool as of patch ${PATCH}. Lore, ability and item text and their icons are loaded from Riot Games' Data Dragon. Rift Scout isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends.</p>`;
     document.body.appendChild(footer);
     const form = header.querySelector("#gsearch");
     const input = header.querySelector("#gq");
@@ -154,9 +170,9 @@
     setNav("champions");
     const [pa, pb] = DEFAULT_PAIR.map(id => byId[id]);
     app.innerHTML = `
-      <section class="intro">
+      <section class="intro art" ${artStyle(FEATURED)}>
         <div>
-          <p class="eyebrow">Patch 26.19 · Season 2026</p>
+          <p class="eyebrow">Patch ${PATCH} · Season 2026</p>
           <h1>Every champion. Every matchup.</h1>
           <p class="lede">Lore, abilities, strengths, weaknesses, risk limits and builds for all ${champs.length} champions, every shop item, and a breakdown of each of the ${fmt(TOTAL)} ranked matchups. Mirror matchups are left out because Ranked doesn't allow them.</p>
           <div class="counts">
@@ -271,14 +287,17 @@
     const struggles = Object.keys(c.cb).filter(k => byId[k]).map(k => ({ c: byId[k], why: c.cb[k] }));
     const cntRow = s => `<div class="factor cnt">${portrait(s.c, "s")}<div><a href="#${c.id}.vs.${s.c.id}"><b>${esc(s.c.name)}</b></a><small>${esc(s.why)}</small></div></div>`;
     app.innerHTML = `
-      <section class="champ-head">
+      <section class="champ-head art" ${artStyle(c)}>
         ${portrait(c, "l")}
         <div>
           <p class="eyebrow">${esc(c.cls)}</p>
           <h1>${esc(c.name)}</h1>
           <p class="title-line" id="riot-title"></p>
           <div class="tags">
-            ${c.roles.map(r => `<span class="tag">${ROLES[r]}</span>`).join("")}
+            ${c.roles.map(r => {
+              const m = E.meta(r).find(x => x.c.id === c.id);
+              return `<a class="tag" href="#meta.${r}">${ROLES[r]} · ${m.main ? `${m.tier} tier` : "flex pick"}</a>`;
+            }).join("")}
             <span class="tag">${esc(c.dmg)} damage</span>
             <span class="tag">${c.melee ? "Melee" : "Ranged"} · <span class="num">${c.rg}</span></span>
           </div>
@@ -379,11 +398,10 @@
     q.addEventListener("input", draw);
     draw();
 
-    app.querySelectorAll("#riot [data-lang]").forEach(btn => btn.addEventListener("click", () => {
-      setLang(btn.dataset.lang);
-      app.querySelectorAll("#riot [data-lang]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.lang === riot.lang)));
+    app.querySelector("#riot [data-lang]").addEventListener("change", e => {
+      setLang(e.target.value);
       loadRiotChampion(c);
-    }));
+    });
     loadRiotChampion(c);
   }
 
@@ -393,6 +411,7 @@
     const token = ++riotToken;
     const body = app.querySelector("#riot-body");
     if (!body) return;
+    body.dir = riotDir();
     const stale = () => token !== riotToken || !app.contains(body);
     try {
       const d = await ddChampion(c, riot.lang), v = riot.version;
@@ -447,7 +466,7 @@
         <div class="items"><button type="submit" class="btn-primary">Show</button><button type="button" id="rand">Random</button></div>
       </form>
 
-      <section class="panel section">
+      <section class="panel section duel" style="--art-a:url('${splash(a)}');--art-b:url('${splash(b)}')">
         <div class="versus">
           <a class="side left" href="#${a.id}">${portrait(a, "m")}<span><span class="who-label">You</span><h2>${esc(a.name)}</h2><span class="muted">${esc(a.cls)} · ${esc(roleText(a))}</span></span></a>
           <span class="vs-badge">VS</span>
@@ -540,7 +559,7 @@
     setNav("builds", "Builds");
     app.innerHTML = `
       <section class="section">
-        <p class="eyebrow">Season 2026 item pool · patch 26.19</p>
+        <p class="eyebrow">Season 2026 item pool · patch ${PATCH}</p>
         <h1>Builds</h1>
         <p class="muted" style="max-width:65ch">The standard build and the off-meta options for every champion. Open any matchup to see how the build changes against a specific enemy.</p>
       </section>
@@ -650,14 +669,87 @@
         grid.innerHTML = `<p class="muted">Riot's item data couldn't be loaded right now. Try again in a moment.</p>`;
       }
     };
-    app.querySelectorAll("#icats [data-lang]").forEach(btn => btn.addEventListener("click", () => {
-      setLang(btn.dataset.lang);
-      app.querySelectorAll("#icats [data-lang]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.lang === riot.lang)));
+    app.querySelector("#icats [data-lang]").addEventListener("change", e => {
+      setLang(e.target.value);
       ifilt.q = ""; input.value = "";
+      grid.dir = riotDir();
       grid.innerHTML = `<p class="muted">Loading Riot's item data…</p>`;
       load();
-    }));
+    });
+    grid.dir = riotDir();
     load();
+  }
+
+  /* ---------- Meta ---------- */
+  const TIERS = { S: "Strongest picks", A: "Strong picks", B: "Solid picks", C: "Situational picks", D: "Need the right matchup" };
+  const LANES = { top: "Top lane", jng: "Jungle", mid: "Mid lane", bot: "Bot lane", sup: "Support" };
+  const PHASES = [["e", "early"], ["m", "mid"], ["l", "late"]];
+  const mfilt = { role: "top", q: "" };
+  function peak(c) {
+    const best = Math.max(c.S.e, c.S.m, c.S.l);
+    const at = PHASES.filter(([k]) => c.S[k] === best).map(([, name]) => name);
+    return at.length === 3 ? "Even all game" : `Peaks ${at.join(" and ")}`;
+  }
+  function viewMeta(role) {
+    mfilt.role = role;
+    const rows = E.meta(role), ranked = rows.filter(r => r.main), lane = LANES[role];
+    setNav("meta", `${lane} meta`);
+    app.innerHTML = `
+      <section class="intro art" ${artStyle(ranked[0].c)}>
+        <div>
+          <p class="eyebrow">Patch ${PATCH} · Season 2026</p>
+          <h1>Meta</h1>
+          <p class="lede">The strongest picks in every lane, the runes and items each of them runs, and the opponents to pick them into or keep them away from. The tiers are this site's own estimate, not win rates.</p>
+        </div>
+        <div class="panel podium">
+          <h3>Best in ${esc(lane)}</h3>
+          ${ranked.slice(0, 3).map(r => `<div class="factor cnt">${portrait(r.c, "s")}<div><a href="#${r.c.id}"><b>${esc(r.c.name)}</b></a><small>${esc(r.c.st[0])}</small></div></div>`).join("")}
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-head"><h2>${esc(lane)} tier list</h2><span class="muted num" id="mcount"></span></div>
+        <div class="filters">
+          ${Object.keys(ROLES).map(r => `<button type="button" class="chip-btn" data-mrole="${r}" aria-pressed="${r === role}">${ROLES[r]}</button>`).join("")}
+          <span class="spacer"></span>
+          <input type="search" id="mq" placeholder="Filter by name" aria-label="Filter the tier list by champion name" value="${esc(mfilt.q)}">
+        </div>
+        <div class="panel meta-list" id="mlist"></div>
+        <p class="note">A champion's rating is its average edge in this site's matchup ratings: half against the other ${esc(ROLES[role])} picks, half against everyone else in fights. S is the top tenth of the lane's own champions, A the next fifth, B the middle, C the fifth below it and D the bottom tenth. Good into and Hard into show up to three lane matchups the champion is favored in and up to three it is not. Flex picks mainly play another role, so they get a rating but no tier.</p>
+      </section>`;
+
+    const face = (r, o) => `<a class="face" href="#${r.c.id}.vs.${o.b.id}" title="${esc(`${o.b.name}: ${o.verdict.short}, edge ${signed(o.total)}`)}" aria-label="${esc(`${r.c.name} vs ${o.b.name}: ${o.verdict.short}`)}">${portrait(o.b, "xs")}</a>`;
+    const none = '<span class="muted">None</span>';
+    const row = r => {
+      const c = r.c, b = c.b, home = ROLES[c.roles[0]];
+      return `
+        <li class="meta-row">
+          <span class="rank num">${r.main ? r.rank : ""}</span>
+          <a class="who" href="#${c.id}">${portrait(c, "s")}<span><b>${esc(c.name)}</b><small>${esc(c.cls)}${r.main ? "" : ` · mainly ${home}`}</small></span></a>
+          <div class="rate">${edgeBar(r.rating, 0.7)}<span class="num">${signed(r.rating)}</span><small>${peak(c)}</small></div>
+          <div class="bld">
+            <p>${esc(b.ru)} <span class="muted">· ${r.main ? esc(b.ss) : `${home} build`}</span></p>
+            <div class="items">${b.core.map(i => itemChip(i, true)).join("")}${itemChip(b.bo)}</div>
+          </div>
+          <div class="faces good"><span class="lbl">Good into</span>${r.best.map(o => face(r, o)).join("") || none}</div>
+          <div class="faces hard"><span class="lbl">Hard into</span>${r.worst.map(o => face(r, o)).join("") || none}</div>
+        </li>`;
+    };
+    const group = (badge, title, list) => list.length ? `
+        <div class="tier-head">${badge}<h3>${title}</h3><span class="muted num">${list.length}</span></div>
+        <ol class="meta-rows">${list.map(row).join("")}</ol>` : "";
+    const draw = () => {
+      const q = norm(mfilt.q);
+      const shown = rows.filter(r => !q || norm(r.c.name).includes(q));
+      app.querySelector("#mcount").textContent = `${shown.length} of ${rows.length}`;
+      app.querySelector("#mlist").innerHTML = shown.length ? `
+        <div class="meta-cols" aria-hidden="true"><span>#</span><span>Champion</span><span>Rating</span><span>Runes and core items</span><span>Good into</span><span>Hard into</span></div>
+        ${Object.keys(TIERS).map(t => group(`<span class="tier t-${t}" aria-label="${t} tier">${t}</span>`, TIERS[t], shown.filter(r => r.tier === t))).join("")}
+        ${group("", "Flex picks", shown.filter(r => !r.main))}`
+        : `<p class="muted">No ${esc(ROLES[role])} champion matches that name.</p>`;
+    };
+    app.querySelectorAll("[data-mrole]").forEach(b => b.addEventListener("click", () => { location.hash = `meta.${b.dataset.mrole}`; }));
+    app.querySelector("#mq").addEventListener("input", e => { mfilt.q = e.target.value; draw(); });
+    draw();
   }
 
   /* ---------- Router ---------- */
@@ -665,11 +757,13 @@
   function route() {
     const h = decodeURIComponent(location.hash.replace(/^#/, "")).toLowerCase();
     const m = h.match(/^([a-z]+)\.vs\.([a-z]+)$/);
+    const lane = h === "meta" ? mfilt.role : (h.match(/^meta\.([a-z]+)$/) || [])[1];
     let view;
     if (m && byId[m[1]] && byId[m[2]] && m[1] !== m[2]) { view = h; viewMatchup(m[1], m[2]); }
     else if (h === "matchups") { view = h; viewMatchup(DEFAULT_PAIR[0], DEFAULT_PAIR[1]); }
     else if (h === "builds") { view = h; viewBuilds(); }
     else if (h === "items") { view = h; viewItems(); }
+    else if (ROLES[lane]) { view = "meta"; viewMeta(lane); }
     else if (byId[h]) { view = h; viewChampion(h); }
     else { view = "champions"; viewChampions(); }
     if (view !== lastView) window.scrollTo(0, 0);
