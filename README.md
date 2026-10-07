@@ -25,6 +25,7 @@ Keep the Riot Games disclaimer in the footer. Riot allows free fan sites that ca
 
 - Champion profiles: `assets/data/champions-*.js` (alphabetical). Each champion has ratings (`s`), kit flags (`f`), strengths and weaknesses, risk limits, builds (`b`, `ob`) and known counters (`cb`). The schema is described at the top of `assets/engine.js`.
 - Matchup rules: `assets/engine.js` (the `FACTORS` list).
+- Patches page: add the new patch at the top of `assets/patches.js`: a short summary in the site's own words, the champion and item changes, the link to Riot's notes and the address of Riot's Patch Highlights picture. Riot's own text is not copied; the page links to it.
 - Meta page: nothing to edit. The tiers are worked out from the profiles and the matchup rules (`meta()` in `assets/engine.js`).
 - Champion icons: `assets/img/<champion>.png`, from Riot's Data Dragon (patch 16.19.1). A new champion needs its icon added here.
 - After editing, re-upload the folder to your host. The patch number shown on the site is `PATCH` near the top of `assets/app.js`.

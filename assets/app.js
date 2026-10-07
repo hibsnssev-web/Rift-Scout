@@ -1,5 +1,5 @@
 /* Rift Scout: views and routing. Routes are plain hash tokens:
-   #champions, #matchups, #builds, #items, #meta, #meta.<role>, #<championId>,
+   #champions, #matchups, #builds, #items, #meta, #meta.<role>, #patches, #<championId>,
    #<championId>.vs.<championId> */
 (function () {
   "use strict";
@@ -28,6 +28,8 @@
   document.addEventListener("error", e => {
     const box = e.target.tagName === "IMG" && e.target.parentElement;
     if (box && (box.classList.contains("pt") || box.classList.contains("ic"))) e.target.remove();
+    const pic = box && box.closest(".patch-pic");
+    if (pic) pic.remove();
   }, true);
 
   /* ---------- Riot's official data (Data Dragon): lore, abilities, items ----------
@@ -137,6 +139,7 @@
           <a href="#builds" data-nav="builds">Builds</a>
           <a href="#items" data-nav="items">Items</a>
           <a href="#meta" data-nav="meta">Meta</a>
+          <a href="#patches" data-nav="patches">Patches</a>
         </nav>
         <form class="search" id="gsearch" role="search">
           <input type="search" id="gq" list="champ-names" placeholder="Find a champion" aria-label="Find a champion" autocomplete="off">
@@ -172,7 +175,7 @@
     app.innerHTML = `
       <section class="intro art" ${artStyle(FEATURED)}>
         <div>
-          <p class="eyebrow">Patch ${PATCH} · Season 2026</p>
+          <p class="eyebrow"><a href="#patches">Patch ${PATCH}</a> · Season 2026</p>
           <h1>Every champion. Every matchup.</h1>
           <p class="lede">Lore, abilities, strengths, weaknesses, risk limits and builds for all ${champs.length} champions, every shop item, and a breakdown of each of the ${fmt(TOTAL)} ranked matchups. Mirror matchups are left out because Ranked doesn't allow them.</p>
           <div class="counts">
@@ -298,6 +301,7 @@
               const m = E.meta(r).find(x => x.c.id === c.id);
               return `<a class="tag" href="#meta.${r}">${ROLES[r]} · ${m.main ? `${m.tier} tier` : "flex pick"}</a>`;
             }).join("")}
+            ${patchTags(c)}
             <span class="tag">${esc(c.dmg)} damage</span>
             <span class="tag">${c.melee ? "Melee" : "Ranged"} · <span class="num">${c.rg}</span></span>
           </div>
@@ -697,7 +701,7 @@
     app.innerHTML = `
       <section class="intro art" ${artStyle(ranked[0].c)}>
         <div>
-          <p class="eyebrow">Patch ${PATCH} · Season 2026</p>
+          <p class="eyebrow"><a href="#patches">Patch ${PATCH}</a> · Season 2026</p>
           <h1>Meta</h1>
           <p class="lede">The strongest picks in every lane, the runes and items each of them runs, and the opponents to pick them into or keep them away from. The tiers are this site's own estimate, not win rates.</p>
         </div>
@@ -752,6 +756,60 @@
     draw();
   }
 
+  /* ---------- Patches ---------- */
+  // Summaries of Riot's patch notes, newest first (assets/patches.js).
+  const PATCHES = window.RS_PATCHES || [];
+  const KINDS = { buff: "Buffed", nerf: "Nerfed", adj: "Adjusted" };
+  // Riot's picture server hands out a small copy on request; the link still opens the original.
+  const smallPic = url => `${url}?fm=webp&w=1000&q=80`;
+  const longDate = iso => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  // On a champion's page: what the newest patch did to that champion, if anything.
+  function patchTags(c) {
+    const p = PATCHES[0];
+    return p ? p.champs.filter(x => findChamp(x.who) === c).map(x => `<a class="tag k-${x.kind}" href="#patches">${KINDS[x.kind]} in ${esc(p.v)}</a>`).join("") : "";
+  }
+  function viewPatches() {
+    setNav("patches", "Patch notes");
+    const change = (x, lead) => `<div class="change">${lead}<span class="pill k-${x.kind}">${KINDS[x.kind]}</span><p>${esc(x.what)}</p></div>`;
+    const champRow = x => {
+      const c = findChamp(x.who);
+      return change(x, c ? `<a class="who" href="#${c.id}">${portrait(c, "s")}<b>${esc(c.name)}</b></a>` : `<b class="who">${esc(x.who)}</b>`);
+    };
+    const itemRow = x => change(x, `<span class="who">${itemChip(x.who)}</span>`);
+    const count = (p, kind, one, many) => { const k = p.champs.filter(x => x.kind === kind).length; return k ? [`${k} ${k === 1 ? one : many}`] : []; };
+    const patch = (p, i) => `
+      <details class="panel patch"${i ? "" : " open"}>
+        <summary>
+          <h2>Patch ${esc(p.v)}</h2>
+          <span class="muted">${longDate(p.date)}</span>
+          ${p.v === PATCH ? '<span class="tag">Current patch</span>' : ""}
+          <span class="muted num counts-line">${[...count(p, "buff", "buff", "buffs"), ...count(p, "nerf", "nerf", "nerfs"), ...count(p, "adj", "adjusted", "adjusted")].join(" · ")}</span>
+        </summary>
+        <div class="patch-body">
+          <div class="patch-top">
+            <div class="section">
+              <p class="patch-sum">${esc(p.sum)}</p>
+              ${p.more.length ? `<h3>Also in this patch</h3>${list(p.more)}` : ""}
+              <p><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Riot's full patch notes</a></p>
+            </div>
+            <figure class="patch-pic">
+              <a href="${esc(p.img)}" target="_blank" rel="noopener"><img src="${esc(smallPic(p.img))}" alt="Riot's Patch Highlights picture for patch ${esc(p.v)}" width="1920" height="1080" loading="lazy" decoding="async"></a>
+              <figcaption class="note">Patch Highlights picture by Riot Games. Select it to see it in full size.</figcaption>
+            </figure>
+          </div>
+          ${p.champs.length ? `<h3>Champions</h3><div class="changes">${p.champs.map(champRow).join("")}</div>` : ""}
+          ${p.items.length ? `<h3>Items</h3><div class="changes">${p.items.map(itemRow).join("")}</div>` : ""}
+        </div>
+      </details>`;
+    app.innerHTML = `
+      <section class="section">
+        <p class="eyebrow">From Riot's patch notes, in short</p>
+        <h1>Patch notes</h1>
+        <p class="muted" style="max-width:65ch">What each patch changed on Summoner's Rift, in this site's own words, with Riot's Patch Highlights picture. For the full numbers, other game modes, skins and bug fixes, open Riot's notes from the button in each patch.</p>
+      </section>
+      <section class="section">${PATCHES.map(patch).join("") || '<p class="muted">No patch has been written up yet.</p>'}</section>`;
+  }
+
   /* ---------- Router ---------- */
   let lastView = "";
   function route() {
@@ -764,6 +822,7 @@
     else if (h === "builds") { view = h; viewBuilds(); }
     else if (h === "items") { view = h; viewItems(); }
     else if (ROLES[lane]) { view = "meta"; viewMeta(lane); }
+    else if (h === "patches") { view = h; viewPatches(); }
     else if (byId[h]) { view = h; viewChampion(h); }
     else { view = "champions"; viewChampions(); }
     if (view !== lastView) window.scrollTo(0, 0);

@@ -77,7 +77,8 @@ p { margin: 0; }
 .nav a { font-family: var(--f-display); font-size: 0.92rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; }
 .nav a:hover { color: var(--ink); text-decoration: none; }
 .nav a[aria-current="page"] { color: var(--gold-bright); box-shadow: inset 0 -2px 0 var(--gold); }
-@media (max-width: 480px) { .nav { flex-wrap: wrap; gap: 0; } .nav a { font-size: 0.8rem; letter-spacing: 0.05em; padding-inline: 6px; } }
+/* On a phone the six links stand in two rows of three. */
+@media (max-width: 480px) { .nav { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0 6px; } .nav a { font-size: 0.84rem; letter-spacing: 0.08em; padding-inline: 7px; } }
 .search { margin-left: auto; display: flex; gap: 6px; min-width: 0; flex: 0 1 280px; }
 input[type="search"], input[type="text"] {
   width: 100%; min-width: 0; font: inherit; color: var(--ink); background: #08101a;
@@ -356,6 +357,32 @@ a.tag:hover { border-color: var(--gold); color: var(--gold-bright); text-decorat
   .rate .edge { display: none; }
   .faces .lbl { display: block; }
 }
+
+/* Patches: one panel per patch that folds shut. The newest one starts open. */
+.eyebrow a { color: inherit; }
+.patch { padding: 0; }
+.patch > summary { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 16px 18px; padding-inline-end: 46px; cursor: pointer; list-style: none; }
+.patch > summary::-webkit-details-marker { display: none; }
+.patch > summary::after { content: ""; position: absolute; inset-inline-end: 20px; top: 21px; width: 8px; height: 8px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(45deg); }
+.patch[open] > summary::after { top: 26px; transform: rotate(225deg); }
+.patch > summary:hover h2 { color: var(--gold-bright); }
+.patch .counts-line { margin-inline-start: auto; }
+.patch-body { display: grid; gap: 14px; padding: 2px 18px 18px; }
+.patch-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .patch-top { grid-template-columns: minmax(0, 1fr); } }
+.patch-sum { font-size: 1.02rem; max-width: 62ch; }
+.patch-pic { margin: 0; display: grid; gap: 6px; }
+.patch-pic img { display: block; width: 100%; height: auto; border: 1px solid var(--gold-line); border-radius: var(--radius); background: var(--panel-2); }
+.patch-pic a:hover img { border-color: var(--gold); }
+.changes { display: grid; }
+.change { display: grid; grid-template-columns: 200px 96px minmax(0, 1fr); gap: 14px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 0.94rem; }
+.change:last-child { border-bottom: 0; }
+.change .who { display: flex; gap: 10px; align-items: center; min-width: 0; color: var(--ink); font-weight: 600; }
+.change .pill { justify-self: start; }
+@media (max-width: 640px) { .change { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; } .change p { grid-column: 1 / -1; } }
+.k-buff { background: rgb(69 207 147 / 0.14); color: var(--go); border-color: rgb(69 207 147 / 0.4); }
+.k-nerf { background: var(--red-soft); color: var(--red); border-color: rgb(255 102 91 / 0.35); }
+.k-adj { background: var(--even-soft); color: var(--even); border-color: rgb(162 156 140 / 0.3); }
 
 footer { max-width: 1180px; margin: 0 auto; padding: 0 16px 40px; font-size: 0.8rem; color: var(--muted); }
 footer p { max-width: 80ch; }
