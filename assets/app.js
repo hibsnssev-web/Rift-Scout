@@ -1,5 +1,5 @@
 /* Rift Scout: views and routing. Routes are plain hash tokens:
-   #champions, #matchups, #builds, #items, #meta, #meta.<role>, #patches, #<championId>,
+   #champions, #matchups, #builds, #items, #meta, #meta.<role>, #patches, #tracker, #<championId>,
    #<championId>.vs.<championId> */
 (function () {
   "use strict";
@@ -50,6 +50,9 @@
     try { localStorage.setItem("rs-lang", lang); } catch (e) { /* storage unavailable */ }
   }
   const riotDir = () => (RTL.includes(riot.lang) ? "rtl" : "ltr");
+  // Marks a box of Riot's text with its direction and its language. Chinese and Japanese share
+  // many characters; the language tells the browser which letter shapes and font to draw them in.
+  const riotMark = el => { el.dir = riotDir(); el.lang = riot.lang.replace("_", "-"); };
   // A champion's splash picture, used as the backdrop of page headers (styles.css: .art, .duel).
   const splash = c => `${DD}/cdn/img/champion/splash/${c.key}_0.jpg`;
   const artStyle = c => `style="--art:url('${splash(c)}')"`;
@@ -140,6 +143,7 @@
           <a href="#items" data-nav="items">Items</a>
           <a href="#meta" data-nav="meta">Meta</a>
           <a href="#patches" data-nav="patches">Patches</a>
+          <a href="#tracker" data-nav="tracker">Tracker</a>
         </nav>
         <form class="search" id="gsearch" role="search">
           <input type="search" id="gq" list="champ-names" placeholder="Find a champion" aria-label="Find a champion" autocomplete="off">
@@ -415,7 +419,7 @@
     const token = ++riotToken;
     const body = app.querySelector("#riot-body");
     if (!body) return;
-    body.dir = riotDir();
+    riotMark(body);
     const stale = () => token !== riotToken || !app.contains(body);
     try {
       const d = await ddChampion(c, riot.lang), v = riot.version;
@@ -676,11 +680,11 @@
     app.querySelector("#icats [data-lang]").addEventListener("change", e => {
       setLang(e.target.value);
       ifilt.q = ""; input.value = "";
-      grid.dir = riotDir();
+      riotMark(grid);
       grid.innerHTML = `<p class="muted">Loading Riot's item data…</p>`;
       load();
     });
-    grid.dir = riotDir();
+    riotMark(grid);
     load();
   }
 
@@ -810,6 +814,72 @@
       <section class="section">${PATCHES.map(patch).join("") || '<p class="muted">No patch has been written up yet.</p>'}</section>`;
   }
 
+  /* ---------- Tracker ---------- */
+  // The desktop app that goes with this site, and what a PC needs to run it.
+  // One row per part: its name, the least that works, and what runs it comfortably.
+  // The app takes about half a gigabyte of memory and 500 MB of disk; recording clips is
+  // the part that asks the most of a PC.
+  const TRACKER_NEEDS = [
+    ["System", "Windows 10 or 11, 64-bit", "Windows 10 or 11, 64-bit"],
+    ["Game", "League in Borderless or Windowed mode", "League in Borderless or Windowed mode"],
+    // The processors Riot's own requirements page names for League: its minimum and its recommended.
+    ["Processor", "Intel Core i3-530 or AMD A6-3650", "Intel Core i5-8250 or AMD Ryzen 3 1200"],
+    ["Memory", "8 GB", "16 GB"],
+    ["Graphics", "Whatever runs League", "With a video encoder, for clips"],
+    ["Free disk", "500 MB", "500 MB, and 10 GB for clips"],
+    ["Screen", "1280 × 720", "1920 × 1080"]
+  ];
+  function viewTracker() {
+    setNav("tracker", "Tracker");
+    const needs = (title, tag, col) => `
+      <div class="panel needs">
+        <div class="build-label"><h3>${title}</h3><span class="tag">${tag}</span></div>
+        ${TRACKER_NEEDS.map(row => `<div class="kv"><span>${row[0]}</span><b>${esc(row[col])}</b></div>`).join("")}
+      </div>`;
+    app.innerHTML = `
+      <section class="section">
+        <p class="eyebrow">Desktop app · in testing</p>
+        <h1>Rift Scout Tracker</h1>
+        <p class="muted" style="max-width:65ch">A small Windows app that goes with this site. It opens over League of Legends with a hotkey and follows your own game by itself: champion select, the game, then the match report.</p>
+      </section>
+      <div class="with-side">
+        <div class="section main-col">
+          <div class="panel section">
+            <h2>What it does</h2>
+            ${list([
+              "Champion select: how your pick stands against every enemy shown so far, and picks for your role while you have none.",
+              "During the game: a small tips card at the edge of the screen with one tip for the moment and the next item to buy, and countdowns to dragons, Voidgrubs, Rift Herald and Baron.",
+              "After the game: a report with grades for laning, fighting, macro, vision, farming and build, the likely mistakes and the good decisions.",
+              "Lookups by Riot ID: a player's live game with the plan for each lane, rank and recent matches.",
+              "Clips: short videos of your kills and objectives, saved by themselves, and the last 30 seconds on a hotkey.",
+              "A phone or tablet in the same home network can show the tracker next to the game. Nothing is installed on it; it needs only a current browser.",
+              "24 languages."
+            ], "blue")}
+          </div>
+          <div class="grid-2">
+            <div class="panel section">
+              <p class="eyebrow">Fair play</p>
+              <p>The tracker uses only what the game's own scoreboard and announcements show. It doesn't track enemy cooldowns or anything else the game keeps from you, and its tips offer choices with reasons instead of telling you what to do.</p>
+            </div>
+            <div class="panel section">
+              <p class="eyebrow">Status</p>
+              <p>A small group is testing the tracker. There is no public download yet.</p>
+            </div>
+          </div>
+          <div class="panel section">
+            <p class="eyebrow">On your PC</p>
+            <p>The tracker is a window of its own on top of the game, not a part of the game. It takes about half a gigabyte of memory and reads the game's scoreboard every few seconds.</p>
+          </div>
+        </div>
+        <aside class="section side-col" aria-label="PC requirements">
+          <h2>PC requirements</h2>
+          ${needs("Minimum", "It runs", 1)}
+          ${needs("Recommended", "It runs well", 2)}
+          <p class="note">Recording clips asks the most of a PC: it uses the video encoder of an NVIDIA, AMD or Intel graphics card or chip, and it can be switched off. These numbers are estimates from testing so far and may change before release.</p>
+        </aside>
+      </div>`;
+  }
+
   /* ---------- Router ---------- */
   let lastView = "";
   function route() {
@@ -823,6 +893,7 @@
     else if (h === "items") { view = h; viewItems(); }
     else if (ROLES[lane]) { view = "meta"; viewMeta(lane); }
     else if (h === "patches") { view = h; viewPatches(); }
+    else if (h === "tracker") { view = h; viewTracker(); }
     else if (byId[h]) { view = h; viewChampion(h); }
     else { view = "champions"; viewChampions(); }
     if (view !== lastView) window.scrollTo(0, 0);
